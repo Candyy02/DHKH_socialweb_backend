@@ -2,6 +2,8 @@
 const express = require('express');
 const morgan = require('morgan');
 const hpp = require('hpp');
+const compression = require('compression');
+const cors = require('cors');
 // eslint-disable-next-line import/no-extraneous-dependencies
 const helmet = require('helmet');
 
@@ -11,10 +13,12 @@ const postRouter = require('./routes/postRoutes');
 const errorController = require('./controllers/errorController');
 
 const app = express();
-
+app.use(cors());
+app.options('*', cors());
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 }
+app.use(compression());
 app.use(helmet());
 app.use(hpp());
 app.use(express.json());
