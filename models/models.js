@@ -1,0 +1,65 @@
+const { Sequelize } = require('sequelize');
+const crypto = require('crypto');
+const bcrypt = require('bcrypt');
+const initModel = require('./init-models');
+
+const databaseName = process.env.DATABASE_NAME;
+
+const username = process.env.USERNAME;
+const password = process.env.PASSWORD;
+const PORT = process.env.DATABASE_PORT || 3306;
+const sequelize = new Sequelize(databaseName, username, password, {
+  host: 'social-web.ctlskvoaafuc.ap-southeast-1.rds.amazonaws.com',
+  dialect:
+    'mysql' /* one of 'mysql' | 'postgres' | 'sqlite' | 'mariadb' | 'mssql' | 'db2' | 'snowflake' | 'oracle' */,
+  port: PORT,
+  // pool: {
+  //   max: 10,
+  //   idle: 30000,
+  //   acquire: 30000,
+  // },
+  define: {
+    timestamps: false,
+  },
+});
+//Define model
+const { Users, Posts, Comments, Likes } = initModel(sequelize);
+//Define relationship
+
+Users.addHook('beforeCreate', async (user) => {
+  if (user.password) {
+    user.password = await bcrypt.hash(user.password, 12);
+    user.passwordChangedAt = Date.now();
+  }
+});
+Users.addHook('beforeUpdate', async (user) => {
+  if (user.changed('password')) {
+    user.password = await bcrypt.hash(user.password, 12);
+    user.passwordChangedAt = Date.now();
+  }
+});
+
+Users.prototype.checkPassword = async (candidatePassword, userPassword) =>
+  await bcrypt.compare(candidatePassword, userPassword);
+Users.prototype.createPasswordResetToken = function () {
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  this.passwordResetToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+
+  return resetToken;
+};
+
+Users.removeAttribute('id');
+Posts.removeAttribute('id');
+Comments.removeAttribute('id');
+
+module.exports = {
+  sequelize,
+  Users,
+  Posts,
+  Comments,
+  Likes,
+};
