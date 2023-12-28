@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const Sequelize = require('sequelize');
 const axios = require('axios');
+
 const sendEmail = require('../utils/email');
 const { Users } = require('../models/models');
 const catchAsync = require('../utils/catchAsync');
@@ -87,17 +88,17 @@ exports.login = catchAsync(async (req, res, next) => {
     return next(new AppError('Please provide email and password', 400));
   }
   const userInfo = await Users.findOne({ where: { email: email } });
-  //const check = await Users.checkPassword(password, userInfo.password);
+
   if (
     !userInfo ||
     !(await userInfo.checkPassword(password, userInfo.password))
   ) {
     return next(new AppError('Incorrect email or password', 401));
   }
-  console.log(userInfo.is_active);
+  //check if user is active
   if (!userInfo.is_active)
     return next(new AppError('This account was deactivated!', 401));
-  console.log(userInfo.passwordVersion);
+  //if everything ok, send token to client
   const token = signToken(userInfo.user_id, userInfo.passwordVersion);
   //Seend cookie
   const cookieOptions = {
@@ -125,10 +126,14 @@ exports.googleSignIn = catchAsync(async (req, res, next) => {
 
     const { sub, email, given_name, family_name, picture } =
       googleResponse.data;
-    // if (email.includes('@husc.edu.vn')) {
-    //   return next(new AppError('Please use education email (HUSC).', 400));
-    // }
-    // Check if the user is already registered in your system
+    if (!email.includes('@husc.edu.vn')) {
+      res.status(400).json({
+        status: 'failed',
+        message: 'Please use education email (HUSC).',
+      });
+      return next(new AppError('Please use education email (HUSC).', 400));
+    }
+
     const user = await Users.findOne({ where: { email: email } });
 
     if (!user) {
@@ -145,16 +150,27 @@ exports.googleSignIn = catchAsync(async (req, res, next) => {
         validate: true,
         returning: true,
       });
-      const message = `Please use this password to login: ${initialPassword}`;
+      const message = `Dear ${newUser.first_name} ${newUser.last_name},
+
+      Welcome to our platform! Your account has been successfully created. Please use the following password to login: ${initialPassword}
+
+      Please note that this is your initial password, and we highly recommend changing it after logging in for the first time.
+
+      If you have any questions or need further assistance, please feel free to contact our support team.
+
+      Best regards,
+      ĐHKH Student Information Exchange Platform
+      `;
+
       await sendEmail({
-        email: user.email,
-        subject: 'Check out your initial password on ĐHKH Social Web',
+        email: newUser.email,
+        subject: 'Welcome to ĐHKH Social Web - Initial Password',
         message,
       });
       res.status(200).json({ status: 'success' });
     } else {
       res
-        .status(200)
+        .status(401)
         .json({ status: 'failed', message: 'This email is already in use!' });
     }
   } catch (error) {
@@ -168,7 +184,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
   const user = await Users.findOne({ where: { email: email } });
   console.log(user);
   if (!user) {
-    return next(new AppError('Email address is not correct!', 400));
+    return next(new AppError('Email address is not registed!', 400));
   }
   const resetToken = user.createPasswordResetToken();
 
@@ -177,7 +193,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
   const resetURL = `${req.protocol}://${req.get(
     'host',
   )}/user/resetPassword/${resetToken}`;
-  const message = `Forgot your password? Submit a PATCH request with your new password and passwordConfirm to: ${resetURL}.\nIf you didn't forget your password, please ignore this email!`;
+  const message = `Dear ${user.first_name},\n\nWe received a request to reset your password. If you did not initiate this request, please ignore this email.\n\nTo reset your password, please click on the following link:\n\n${resetURL}\n\nThis link is valid for 10 minutes.\n\nThank you,\nThe Social Web Team`;
 
   try {
     await sendEmail({
