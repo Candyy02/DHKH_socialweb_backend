@@ -190,9 +190,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 
   await user.save();
   //3 send to email
-  const resetURL = `${req.protocol}://${req.get(
-    'host',
-  )}/user/resetPassword/${resetToken}`;
+  const resetURL = `${process.env.WEB_DOMAIN}/resetPassword/${resetToken}`;
   const message = `Dear ${user.first_name},\n\nWe received a request to reset your password. If you did not initiate this request, please ignore this email.\n\nTo reset your password, please click on the following link:\n\n${resetURL}\n\nThis link is valid for 10 minutes.\n\nThank you,\nThe Social Web Team`;
 
   try {
@@ -237,13 +235,13 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
     );
   }
   user.password = req.body.password;
-  user.passwordResetToken = undefined;
-  user.passwordResetExpires = undefined;
+  user.passwordResetToken = null;
+  user.passwordResetExpires = null;
   await user.save();
 
   res.status(200).json({
-    status: 'succes',
-    message: 'password changed successfully',
+    status: 'success',
+    message: 'Password changed successfully',
   });
 });
 exports.updatePassword = catchAsync(async (req, res, next) => {
