@@ -12,13 +12,13 @@ const AppError = require('../utils/appError');
 
 const { gt } = Sequelize.Op;
 
-const signToken = (id, passwordVersion) =>
-  jwt.sign({ id, passwordVersion }, process.env.JWT_SECRET, {
+const signToken = (id, passwordVersion, ...info) =>
+  jwt.sign({ id, passwordVersion, ...info }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN,
   });
 function generateRandomPassword(length) {
   const characters =
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+';
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const passwordArray = new Array(length);
 
   // eslint-disable-next-line no-plusplus
@@ -39,8 +39,9 @@ exports.protect = catchAsync(async (req, res, next) => {
   }
   if (!token)
     return next(
-      new AppError('You are not allowed to access this. Please log in'),
+      new AppError('You are not allowed to access this. Please log in', 401),
     );
+
   const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
   const user_id = decoded.id;
   const currentUser = await Users.findOne({ where: { user_id: user_id } });
@@ -105,9 +106,11 @@ exports.login = catchAsync(async (req, res, next) => {
     expires: new Date(
       Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000,
     ),
-    httpOnly: true,
+    httpOnly: false,
   };
-  if (process.env.NODE_ENV === 'production') cookieOptions.secure = true;
+  if (process.env.NODE_ENV === 'production') {
+    cookieOptions.secure = true;
+  }
 
   res.cookie('jwt', token, cookieOptions);
 
@@ -126,13 +129,14 @@ exports.googleSignIn = catchAsync(async (req, res, next) => {
 
     const { sub, email, given_name, family_name, picture } =
       googleResponse.data;
-    if (!email.includes('@husc.edu.vn')) {
-      res.status(400).json({
-        status: 'failed',
-        message: 'Please use education email (HUSC).',
-      });
-      return next(new AppError('Please use education email (HUSC).', 400));
-    }
+
+    // if (!email.includes('@husc.edu.vn')) {
+    //   res.status(400).json({
+    //     status: 'failed',
+    //     message: 'Please use education email (HUSC).',
+    //   });
+    //   return next(new AppError('Please use education email (HUSC).', 400));
+    // }
 
     const user = await Users.findOne({ where: { email: email } });
 
@@ -182,7 +186,7 @@ exports.googleSignIn = catchAsync(async (req, res, next) => {
 exports.forgotPassword = catchAsync(async (req, res, next) => {
   const { email } = req.body;
   const user = await Users.findOne({ where: { email: email } });
-  console.log(user);
+
   if (!user) {
     return next(new AppError('Email address is not registed!', 400));
   }

@@ -23,7 +23,7 @@ const sequelize = new Sequelize(databaseName, username, password, {
   },
 });
 //Define model
-const { Users, Posts, Comments, Likes } = initModel(sequelize);
+const { Users, Posts, Comments, Likes, Followers } = initModel(sequelize);
 //Define relationship
 
 Users.addHook('beforeCreate', async (user) => {
@@ -62,4 +62,5 @@ module.exports = {
   Posts,
   Comments,
   Likes,
+  Followers,
 };

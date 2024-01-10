@@ -15,9 +15,9 @@ const errorController = require('./controllers/errorController');
 const app = express();
 app.use(cors());
 app.options('*', cors());
-if (process.env.NODE_ENV !== 'production') {
-  app.use(morgan('dev'));
-}
+// if (process.env.NODE_ENV !== 'production') {
+app.use(morgan('dev'));
+// }
 app.use(compression());
 app.use(helmet());
 app.use(hpp());

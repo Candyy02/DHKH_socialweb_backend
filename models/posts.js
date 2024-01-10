@@ -16,7 +16,24 @@ module.exports = function (sequelize, DataTypes) {
           key: 'user_id',
         },
       },
+      title: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
       content: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      created_at: {
+        type: DataTypes.BIGINT,
+        allowNull: true,
+        defaultValue: sequelize.literal('CURRENT_TIMESTAMP'),
+      },
+      updated_at: {
+        type: DataTypes.BIGINT,
+        allowNull: true,
+      },
+      tags: {
         type: DataTypes.TEXT,
         allowNull: true,
       },
