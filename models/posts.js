@@ -24,10 +24,13 @@ module.exports = function (sequelize, DataTypes) {
         type: DataTypes.TEXT,
         allowNull: true,
       },
+      code: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
       created_at: {
         type: DataTypes.BIGINT,
         allowNull: true,
-        defaultValue: sequelize.literal('CURRENT_TIMESTAMP'),
       },
       updated_at: {
         type: DataTypes.BIGINT,

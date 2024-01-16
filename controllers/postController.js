@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 const catchAsync = require('../utils/catchAsync');
 const { Posts } = require('../models/models');
 const AppError = require('../utils/appError');
@@ -53,6 +54,21 @@ exports.getPostInfo = catchAsync(async (req, res, next) => {
   });
   if (!post) {
     return next(new AppError("Couldn't found post!", 404));
+  }
+  res.status(200).json({ status: 'success', data: post });
+});
+exports.createPost = catchAsync(async (req, res, next) => {
+  const { user_id } = req.user;
+  const { title, content, code, created_at } = req.body;
+  const post = await Posts.create({
+    user_id,
+    title,
+    content,
+    code,
+    created_at,
+  });
+  if (!post) {
+    return next(new AppError('Error while creating post!', 500));
   }
   res.status(200).json({ status: 'success', data: post });
 });

@@ -9,5 +9,6 @@ router.get(
   authController.protect,
   postController.getPostInfo,
 );
+router.post('/createPost', authController.protect, postController.createPost);
 
 module.exports = router;

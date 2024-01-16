@@ -9,7 +9,6 @@ exports.getAllUser = catchAsync(async (req, res, next) => {
 });
 exports.getProfile = catchAsync(async (req, res, next) => {
   const { user } = req;
-  console.log(user);
   user.password = undefined;
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
