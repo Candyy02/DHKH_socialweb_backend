@@ -168,7 +168,7 @@ exports.googleSignIn = catchAsync(async (req, res, next) => {
 
       await sendEmail({
         email: newUser.email,
-        subject: 'Welcome to ĐHKH Social Web - Initial Password',
+        subject: '[HUSC] Welcome to ĐHKH Social Web - Initial Password',
         message,
       });
       res.status(200).json({ status: 'success' });
@@ -200,7 +200,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
   try {
     await sendEmail({
       email: user.email,
-      subject: 'Your password reset token (valid for 10 min)',
+      subject: '[HUSC] Your password reset token (valid for 10 min)',
       message,
     });
 

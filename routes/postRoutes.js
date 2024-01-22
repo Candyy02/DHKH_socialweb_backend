@@ -5,10 +5,10 @@ const postController = require('../controllers/postController');
 const router = express.Router();
 router.get('/getPosts', authController.protect, postController.getPosts);
 router.get(
-  '/getPostInfo/:postId',
+  '/postdetail/:postId',
   authController.protect,
-  postController.getPostInfo,
+  postController.getPostDetail,
 );
 router.post('/createPost', authController.protect, postController.createPost);
-
+router.get('/search', authController.protect, postController.searchPost);
 module.exports = router;
