@@ -11,4 +11,5 @@ router.get(
 );
 router.post('/createPost', authController.protect, postController.createPost);
 router.get('/search', authController.protect, postController.searchPost);
+router.post('/addComment', authController.protect, postController.addComment);
 module.exports = router;

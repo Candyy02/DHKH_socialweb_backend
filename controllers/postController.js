@@ -158,3 +158,25 @@ exports.getUserPosts = catchAsync(async (req, res, next) => {
   }
   res.status(200).json({ status: 'success', data: posts });
 });
+exports.addComment = catchAsync(async (req, res, next) => {
+  const { user_id } = req.user;
+  const { post_id, content, created_at } = req.body;
+  const comment = await Comments.create({
+    user_id,
+    post_id,
+    content,
+    created_at,
+  });
+  if (!comment) {
+    return next(new AppError('Error while adding comment!', 500));
+  }
+  res.status(201).json({ status: 'success', data: comment });
+});
+exports.deleteComment = catchAsync(async (req, res, next) => {
+  const { commentId } = req.params;
+  const comment = await Comments.destroy({ where: { comment_id: commentId } });
+  if (!comment) {
+    return next(new AppError('Error while deleting comment!', 500));
+  }
+  res.status(200).json({ status: 'success', data: comment });
+});

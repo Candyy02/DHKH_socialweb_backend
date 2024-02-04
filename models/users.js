@@ -31,6 +31,10 @@ module.exports = function (sequelize, DataTypes) {
         type: DataTypes.STRING(255),
         allowNull: true,
       },
+      nick_name: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+      },
       passwordChangedAt: {
         type: DataTypes.BIGINT,
         allowNull: true,

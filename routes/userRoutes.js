@@ -26,5 +26,11 @@ router
     authController.restrictTo(['admin']),
     usersController.getAllUser,
   );
-router.get('/getProfile/', authController.protect, usersController.getProfile);
+router.get(
+  '/getProfile/:id?',
+  authController.protect,
+  usersController.getProfile,
+);
+router.post('/follow', authController.protect, usersController.followUser);
+router.post('/unfollow', authController.protect, usersController.unfollowUser);
 module.exports = router;

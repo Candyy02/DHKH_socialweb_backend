@@ -4,7 +4,7 @@ module.exports = function (sequelize, DataTypes) {
     {
       comment_id: {
         autoIncrement: true,
-        type: DataTypes.INTEGER,
+        type: DataTypes.BIGINT,
         allowNull: false,
         primaryKey: true,
       },
@@ -17,7 +17,7 @@ module.exports = function (sequelize, DataTypes) {
         },
       },
       post_id: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.BIGINT,
         allowNull: false,
         references: {
           model: 'Posts',
@@ -26,6 +26,14 @@ module.exports = function (sequelize, DataTypes) {
       },
       content: {
         type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      created_at: {
+        type: DataTypes.BIGINT,
+        allowNull: false,
+      },
+      updated_at: {
+        type: DataTypes.BIGINT,
         allowNull: true,
       },
     },
