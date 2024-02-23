@@ -1,4 +1,8 @@
+const redis = require('redis');
+
+const client = redis.createClient();
 /* eslint-disable camelcase */
+
 const { promisify } = require('util');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
