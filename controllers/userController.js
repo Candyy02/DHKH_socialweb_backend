@@ -1,5 +1,7 @@
 /* eslint-disable camelcase */
 
+// eslint-disable-next-line import/no-extraneous-dependencies
+const sharp = require('sharp');
 const catchAsync = require('../utils/catchAsync');
 const { Users, Followers } = require('../models/models');
 const AppError = require('../utils/appError');
@@ -59,6 +61,43 @@ exports.getProfile = catchAsync(async (req, res, next) => {
       contacts,
     },
   });
+});
+
+exports.updateProfile = catchAsync(async (req, res, next) => {
+  const { user_id } = req.user;
+  const { first_name, last_name, email, nick_name, bio } = req.body;
+
+  const ext = req.file?.mimetype.split('/')[1];
+  const fileName = `${user_id}_${Date.now()}.${ext}`;
+  if (req.file) {
+    const rsImg = await sharp(req.file.buffer)
+      .resize({ width: 500, height: 500 })
+      .toFormat('jpeg')
+      .jpeg({ quality: 90 })
+      .toFile(`uploads/profile_pictures/${fileName}`);
+    req.file.filename = fileName;
+    console.log(rsImg);
+  }
+
+  const imageUrl = req.file
+    ? `${req.protocol}://${req.get(
+        'host',
+      )}/uploads/profile_pictures/${fileName}`
+    : null;
+  await Users.update(
+    {
+      first_name,
+      last_name,
+      email,
+      bio,
+      nick_name,
+      profile_picture: imageUrl || undefined,
+    },
+    {
+      where: { user_id },
+    },
+  );
+  res.status(200).json({ message: 'success' });
 });
 exports.followUser = catchAsync(async (req, res, next) => {
   const { user_id } = req.user;

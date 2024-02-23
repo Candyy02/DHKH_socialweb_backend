@@ -13,8 +13,11 @@ const postRouter = require('./routes/postRoutes');
 const errorController = require('./controllers/errorController');
 
 const app = express();
-app.use(cors());
-app.options('*', cors());
+const corsOptions = {
+  origin: 'http://localhost:5173',
+  optionsSuccessStatus: 200, // Some legacy browsers choke on 204
+};
+app.use(cors(corsOptions));
 // if (process.env.NODE_ENV !== 'production') {
 app.use(morgan('dev'));
 // }
@@ -33,5 +36,13 @@ app.use((req, res, next) => {
 });
 app.use('/user', userRouter);
 app.use('/', postRouter);
+app.use(
+  '/uploads/profile_pictures',
+  (req, res, next) => {
+    res.header('Access-Control-Allow-Origin', 'http://localhost:5173');
+    next();
+  },
+  express.static('uploads/profile_pictures'),
+);
 app.use(errorController);
 module.exports = app;

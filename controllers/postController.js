@@ -26,6 +26,7 @@ exports.getPosts = catchAsync(async (req, res, next) => {
         attributes: ['user_id', 'first_name', 'last_name', 'profile_picture'],
       },
     ],
+    order: [['created_at', 'DESC']],
   });
   //console.log(newsfeed);
   if (!newsfeed) return next(new AppError('Error while getting newsfeed', 404));
@@ -85,7 +86,22 @@ exports.getPostDetail = catchAsync(async (req, res, next) => {
           },
         ],
       },
-      { model: Likes, as: 'Likes' },
+      {
+        model: Likes,
+        as: 'Likes',
+        include: [
+          {
+            model: Users,
+            as: 'user',
+            attributes: [
+              'user_id',
+              'first_name',
+              'last_name',
+              'profile_picture',
+            ],
+          },
+        ],
+      },
       {
         model: Users,
         as: 'user',
@@ -96,7 +112,12 @@ exports.getPostDetail = catchAsync(async (req, res, next) => {
   if (!post) {
     return next(new AppError("Couldn't found post!", 404));
   }
-  res.status(200).json({ status: 'success', data: post });
+  const postSanitized = post.get({ plain: true });
+  const isLiked = !!postSanitized.Likes.find(
+    (like) => like.user_id === req.user.user_id,
+  );
+  postSanitized.isLiked = isLiked;
+  res.status(200).json({ status: 'success', data: postSanitized });
 });
 exports.updatePost = catchAsync(async (req, res, next) => {
   const { postId } = req.params;
@@ -173,10 +194,40 @@ exports.addComment = catchAsync(async (req, res, next) => {
   res.status(201).json({ status: 'success', data: comment });
 });
 exports.deleteComment = catchAsync(async (req, res, next) => {
-  const { commentId } = req.params;
-  const comment = await Comments.destroy({ where: { comment_id: commentId } });
+  const { user_id } = req.user;
+  const { comment_id } = req.body;
+  const comment = await Comments.destroy({
+    where: { comment_id: comment_id, user_id: user_id },
+  });
   if (!comment) {
-    return next(new AppError('Error while deleting comment!', 500));
+    return next(new AppError('You are not able to do this!', 403));
   }
-  res.status(200).json({ status: 'success', data: comment });
+  res.status(204).json({ status: 'success', data: comment });
+});
+//#TODO: add edit Comment in front-end
+exports.editComment = catchAsync(async (req, res, next) => {
+  const { user_id } = req.user;
+  const { comment_id, content, updated_at } = req.body;
+  const comment = await Comments.update(
+    { content, updated_at },
+    { where: { comment_id: comment_id, user_id: user_id } },
+  );
+  if (!comment) {
+    return next(new AppError('You are not able to do this!', 403));
+  }
+  res.status(200).json({ status: 'success' });
+});
+
+exports.likePost = catchAsync(async (req, res, next) => {
+  const { user_id } = req.user;
+  const { post_id } = req.body;
+  console.log(user_id, post_id);
+  const like = await Likes.create({ user_id, post_id });
+  res.status(201).json({ status: 'success', data: like });
+});
+exports.unlikePost = catchAsync(async (req, res, next) => {
+  const { user_id } = req.user;
+  const { post_id } = req.body;
+  const like = await Likes.destroy({ where: { user_id, post_id } });
+  res.status(204).json({ status: 'success', data: like });
 });

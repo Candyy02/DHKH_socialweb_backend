@@ -12,4 +12,16 @@ router.get(
 router.post('/createPost', authController.protect, postController.createPost);
 router.get('/search', authController.protect, postController.searchPost);
 router.post('/addComment', authController.protect, postController.addComment);
+router.patch(
+  '/editComment',
+  authController.protect,
+  postController.editComment,
+);
+router.delete(
+  '/deleteComment',
+  authController.protect,
+  postController.deleteComment,
+);
+router.post('/likePost', authController.protect, postController.likePost);
+router.delete('/unlikePost', authController.protect, postController.unlikePost);
 module.exports = router;
