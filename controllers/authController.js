@@ -1,6 +1,3 @@
-const redis = require('redis');
-
-const client = redis.createClient();
 /* eslint-disable camelcase */
 
 const { promisify } = require('util');
@@ -279,3 +276,24 @@ exports.deactivateUser = catchAsync(async (req, res, next) => {
     .status(200)
     .json({ status: 'success', message: 'Deactive successfully.' });
 });
+
+exports.verifyToken = async (token) => {
+  if (!token) return null;
+  const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+  const user_id = decoded.id;
+  const currentUser = await Users.findOne({ where: { user_id: user_id } });
+  if (!currentUser || currentUser.is_active === 1) {
+    console.log('fail 1');
+    return null;
+  }
+  const timestamp = currentUser.passwordChangeAt;
+  if (
+    timestamp > decoded.iat ||
+    decoded.passwordVersion !== currentUser.passwordVersion
+  ) {
+    console.log('fail 2');
+    return null;
+  }
+
+  return currentUser.get({ plain: true });
+};

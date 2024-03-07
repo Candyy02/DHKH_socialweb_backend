@@ -1,7 +1,13 @@
 const dotenv = require('dotenv');
-
 dotenv.config({ path: './config.env' });
+
 const { sequelize } = require('./models/models');
+const http = require('http');
+const messageHandler = require('./controllers/messageController');
+
+// eslint-disable-next-line import/no-extraneous-dependencies
+const socketIo = require('socket.io');
+
 const app = require('./app');
 
 async function testConnection() {
@@ -14,11 +20,18 @@ async function testConnection() {
 }
 testConnection();
 //TODO: listening port
-const port = process.env.PORT || 3000;
-const server = app.listen(port, () => {
-  console.log(`Listening on ${port}`);
-});
 
+// const server = app.listen(port, () => {
+//   console.log(`Listening on ${port}`);
+// });
+// const port = process.env.PORT || 3000;
+const server = http.createServer(app);
+const io = socketIo(server);
+//#TODO: Tính tới trường hợp nếu người dùng gửi receiver_id không có trong db
+io.on('connection', messageHandler);
+
+const port = 3000;
+server.listen(port, () => console.log(`Server running on port ${port}`));
 process.on('unhandledRejection', (err) => {
   console.log('UNHANDLED REJECTION! 💥 Shutting down...');
   console.log(err.name, err.message);

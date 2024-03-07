@@ -13,6 +13,7 @@ const sequelize = new Sequelize(databaseName, username, password, {
   dialect:
     'mysql' /* one of 'mysql' | 'postgres' | 'sqlite' | 'mariadb' | 'mssql' | 'db2' | 'snowflake' | 'oracle' */,
   port: PORT,
+  password: password,
   // pool: {
   //   max: 10,
   //   idle: 30000,

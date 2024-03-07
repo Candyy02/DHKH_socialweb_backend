@@ -10,7 +10,6 @@ exports.getPosts = catchAsync(async (req, res, next) => {
   const limit = req.query.limit * 1 || 10;
   const page = req.query.page * 1 || 1;
   const userId = req.query.userId || null;
-  console.log(req.query);
   const offset = (page - 1) * limit;
 
   const newsfeed = await Posts.findAll({

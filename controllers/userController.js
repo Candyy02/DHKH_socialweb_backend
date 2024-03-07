@@ -119,3 +119,13 @@ exports.unfollowUser = catchAsync(async (req, res, next) => {
   });
   res.status(200).json({ message: 'success' });
 });
+exports.getInfoList = catchAsync(async (req, res, next) => {
+  console.log(req.query.user_ids);
+  const user_ids = req.query.user_ids.split(',').map((id) => parseInt(id));
+  if (!user_ids) return next(new AppError('UserId list was not found!', 400));
+  const infoList = await Users.findAll({
+    where: { user_id: user_ids },
+    attributes: ['user_id', 'first_name', 'last_name', 'profile_picture'],
+  });
+  res.status(200).json({ message: 'success', data: infoList });
+});
