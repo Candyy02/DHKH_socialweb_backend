@@ -123,15 +123,15 @@ module.exports = async (socket) => {
       console.log(chalk.bgCyan('create new roomId'));
       const newChatRoomRef = membersRef.push();
       const newChatRoomId = newChatRoomRef.key; // to get unique roomId by Realtime DB
-      newChatRoomRef.set({
+      newChatRoomRef.update({
         [user_id]: true,
         [recipient_id]: true,
       });
-      messagesRef.set({ [newChatRoomId]: {} });
+      messagesRef.update({ [newChatRoomId]: {} });
       messagesRef
         .child(newChatRoomId)
         .push({ user_id: user_id, message: message, timestamp: timestamp });
-      chatsRef.set({ [newChatRoomId]: {} });
+      chatsRef.update({ [newChatRoomId]: {} });
       chatsRef.child(newChatRoomId).set({
         sender_id: user_id,
         last_message: message,

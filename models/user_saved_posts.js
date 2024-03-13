@@ -1,7 +1,7 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('Followers', {
-    follower_id: {
+  return sequelize.define('User_saved_posts', {
+    user_id: {
       type: DataTypes.STRING(255),
       allowNull: false,
       primaryKey: true,
@@ -10,18 +10,22 @@ module.exports = function(sequelize, DataTypes) {
         key: 'user_id'
       }
     },
-    following_id: {
-      type: DataTypes.STRING(255),
+    post_id: {
+      type: DataTypes.INTEGER,
       allowNull: false,
       primaryKey: true,
       references: {
-        model: 'Users',
-        key: 'user_id'
+        model: 'Posts',
+        key: 'post_id'
       }
+    },
+    saved_at: {
+      type: DataTypes.BIGINT,
+      allowNull: true
     }
   }, {
     sequelize,
-    tableName: 'Followers',
+    tableName: 'User_saved_posts',
     timestamps: false,
     indexes: [
       {
@@ -29,15 +33,15 @@ module.exports = function(sequelize, DataTypes) {
         unique: true,
         using: "BTREE",
         fields: [
-          { name: "follower_id" },
-          { name: "following_id" },
+          { name: "user_id" },
+          { name: "post_id" },
         ]
       },
       {
-        name: "fk_followers_following_id",
+        name: "post_id",
         using: "BTREE",
         fields: [
-          { name: "following_id" },
+          { name: "post_id" },
         ]
       },
     ]
