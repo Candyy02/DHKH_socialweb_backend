@@ -5,7 +5,8 @@ const sharp = require('sharp');
 const catchAsync = require('../utils/catchAsync');
 const { Users, Followers } = require('../models/models');
 const AppError = require('../utils/appError');
-
+const path = require('path');
+const fs = require('fs');
 exports.getAllUser = catchAsync(async (req, res, next) => {
   const allUser = Users.findAll({});
   res.status(200).json({ allUser });
@@ -53,7 +54,10 @@ exports.getProfile = catchAsync(async (req, res, next) => {
   }
   const sanitizedUser = user.get({ plain: true }); // Convert user to plain object
   sanitizedUser.followers = count;
-  sanitizedUser.isFollowing = !!isFollowing; // Convert isFollowing to boolean
+  sanitizedUser.isFollowing = !!isFollowing;
+  sanitizedUser.profile_picture =
+    sanitizedUser.profile_picture ||
+    `${req.protocol}://${req.get('host')}/uploads/profile_pictures/user.png`; // Convert isFollowing to boolean
   res.status(200).json({
     status: 'success',
     data: {
@@ -84,6 +88,26 @@ exports.updateProfile = catchAsync(async (req, res, next) => {
         'host',
       )}/uploads/profile_pictures/${fileName}`
     : null;
+  // Remove old profile picture if it exists
+  const directoryPath = 'uploads/profile_pictures/';
+  fs.readdir(directoryPath, (err, files) => {
+    if (err) {
+      console.error('An error occurred:', err);
+    } else {
+      const fileFound = files.find((file) => file.startsWith(user_id));
+      if (fileFound && fileFound != fileName) {
+        fs.unlink(path.join(directoryPath, fileFound), (err) => {
+          if (err) {
+            console.error('There was an error:', err);
+          } else {
+            console.log('File deleted successfully:', fileFound);
+          }
+        });
+      } else {
+        console.log('File not found');
+      }
+    }
+  });
   await Users.update(
     {
       first_name,
