@@ -5,8 +5,10 @@ const initModel = require('./init-models');
 
 const databaseName = process.env.DATABASE_NAME;
 
-const username = process.env.USERNAME;
+const username = "admin";
 const password = process.env.PASSWORD;
+
+console.log("password la: " + password);
 const PORT = process.env.DATABASE_PORT || 3306;
 const sequelize = new Sequelize(databaseName, username, password, {
   host: 'social-web.ctlskvoaafuc.ap-southeast-1.rds.amazonaws.com',
