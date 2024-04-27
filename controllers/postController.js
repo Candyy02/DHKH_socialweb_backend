@@ -3,7 +3,7 @@ const { Op } = require('sequelize');
 const catchAsync = require('../utils/catchAsync');
 const { Posts } = require('../models/models');
 const AppError = require('../utils/appError');
-
+const moment = require('moment');
 const { Comments, Likes, Users } = require('../models/models');
 
 exports.getPosts = catchAsync(async (req, res, next) => {
@@ -15,7 +15,6 @@ exports.getPosts = catchAsync(async (req, res, next) => {
   const newsfeed = await Posts.findAll({
     offset: offset,
     limit: limit,
-    where: userId ? { user_id: userId } : null,
     include: [
       { model: Comments, as: 'Comments' },
       { model: Likes, as: 'Likes' },
@@ -131,33 +130,164 @@ exports.updatePost = catchAsync(async (req, res, next) => {
   res.status(200).json({ status: 'success', data: post });
 });
 exports.searchPost = catchAsync(async (req, res, next) => {
-  const { keyword } = req.query;
-  const posts = await Posts.findAll({
-    where: {
-      [Op.or]: [
-        {
-          title: {
-            [Op.like]: `%${keyword}%`,
-          },
-        },
-        {
-          content: {
-            [Op.like]: `%${keyword}%`,
-          },
-        },
-        {
-          tags: {
-            [Op.like]: `%${keyword}%`,
-          },
-        },
-      ],
-    },
-    attributes: ['post_id', 'title'],
-  });
-  if (!posts) {
-    return next(new AppError('Error while searching posts!', 500));
+  const {
+    general = null,
+    tag = null,
+    user = null,
+    date = null,
+    comments = null,
+    likes = null,
+    profile = null,
+  } = req.body;
+
+  const searchCriteria = {};
+
+  if (general !== null) {
+    searchCriteria.title = {
+      [Op.like]: `%${general}%`,
+    };
+    searchCriteria.content = {
+      [Op.like]: `%${general}%`,
+    };
   }
-  res.status(200).json({ status: 'success', data: posts });
+
+  if (tag !== null) {
+    searchCriteria.tags = {
+      [Op.like]: `%${tag}%`,
+    };
+  }
+  const userCriteria = {};
+  if (user !== null) {
+    userCriteria[Op.or] = [
+      {
+        first_name: {
+          [Op.like]: `%${user}%`,
+        },
+      },
+      {
+        last_name: {
+          [Op.like]: `%${user}%`,
+        },
+      },
+    ];
+  }
+
+  if (date !== null) {
+    const unixDate = moment(date, 'DD/MM/YYYY').unix();
+    searchCriteria.created_at = {
+      [Op.gte]: unixDate,
+    };
+  }
+  const limit = req.query.limit * 1 || 10;
+  const page = req.query.page * 1 || 1;
+  const offset = (page - 1) * limit;
+  const searchResult = await Posts.findAll({
+    offset: offset,
+    limit: limit,
+    where: searchCriteria,
+    include: [
+      { model: Comments, as: 'Comments' },
+      { model: Likes, as: 'Likes' },
+      {
+        model: Users,
+        as: 'user',
+        attributes: ['user_id', 'first_name', 'last_name', 'profile_picture'],
+        where: userCriteria,
+      },
+    ],
+    order: [['created_at', 'DESC']],
+    attributes: { exclude: ['content', 'code'] },
+  });
+
+  // const limit = req.query.limit * 1 || 10;
+  // const page = req.query.page * 1 || 1;
+  // const offset = (page - 1) * limit;
+  // const unixDate = moment(date, 'DD/MM/YYYY').unix();
+
+  // const searchResult = await Posts.findAll({
+  //   offset: offset,
+  //   limit: limit,
+  //   where: {
+  //     [Op.or]: [
+  //       {
+  //         title: {
+  //           [Op.like]: `%${general}%`,
+  //         },
+  //       },
+  //       {
+  //         content: {
+  //           [Op.like]: `%${general}%`,
+  //         },
+  //       },
+  //     ],
+  //     [Op.and]: [
+  //       {
+  //         tags: {
+  //           [Op.like]: `%${tag}%`,
+  //         },
+  //       },
+
+  //       {
+  //         created_at: {
+  //           [Op.gte]: unixDate,
+  //         },
+  //       },
+  //     ],
+  //   },
+  //   include: [
+  //     { model: Comments, as: 'Comments' },
+  //     { model: Likes, as: 'Likes' },
+  //     {
+  //       model: Users,
+  //       as: 'user',
+  //       attributes: ['user_id', 'first_name', 'last_name', 'profile_picture'],
+  //       where: {
+  //         [Op.or]: [
+  //           {
+  //             first_name: {
+  //               [Op.like]: `%${user}%`,
+  //             },
+  //           },
+  //           {
+  //             last_name: {
+  //               [Op.like]: `%${user}%`,
+  //             },
+  //           },
+  //         ],
+  //       },
+  //     },
+  //   ],
+  //   order: [['created_at', 'DESC']],
+  // });
+  //console.log(newsfeed);
+  if (!searchResult)
+    return next(new AppError('Error while getting newsfeed', 404));
+
+  const postsWithCounts = searchResult
+    .map((post) => {
+      const commentCount = post.Comments.length;
+      const likeCount = post.Likes.length;
+
+      return {
+        ...post.toJSON(),
+        commentCount,
+        likeCount,
+        Comments: undefined,
+        Likes: undefined,
+        User: undefined,
+      };
+    })
+    .filter((post) => {
+      if (comments !== null) {
+        return post.commentCount >= comments;
+      } else if (likes !== null) {
+        return post.likeCount >= likes;
+      } else {
+        return post.commentCount >= comments && post.likeCount >= likes;
+      }
+    });
+
+  res.status(200).json({ status: 'success', data: postsWithCounts });
 });
 exports.getUserPosts = catchAsync(async (req, res, next) => {
   const { userId } = req.params;

@@ -153,3 +153,17 @@ exports.getInfoList = catchAsync(async (req, res, next) => {
   });
   res.status(200).json({ message: 'success', data: infoList });
 });
+exports.searchUser = catchAsync(async (req, res, next) => {
+  const { name } = req.query;
+  const users = await Users.findAll({
+    where: {
+      [Op.or]: [
+        { first_name: { [Op.iLike]: `%${name}%` } },
+        { last_name: { [Op.iLike]: `%${name}%` } },
+        { nick_name: { [Op.iLike]: `%${name}%` } },
+      ],
+    },
+    attributes: ['user_id', 'first_name', 'last_name', 'profile_picture'],
+  });
+  res.status(200).json({ message: 'success', data: users });
+});

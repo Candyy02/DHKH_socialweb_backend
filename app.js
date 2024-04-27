@@ -6,7 +6,7 @@ const compression = require('compression');
 const cors = require('cors');
 // eslint-disable-next-line import/no-extraneous-dependencies
 const helmet = require('helmet');
-
+const rateLimit = require('express-rate-limit');
 //TODO: require Routers
 const userRouter = require('./routes/userRoutes');
 const postRouter = require('./routes/postRoutes');
@@ -41,6 +41,13 @@ app.use(
   '/uploads/profile_pictures',
   express.static('uploads/profile_pictures'),
 );
+// Set up rate limiter: maximum of 100 requests per minute
+const limiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 100, // limit each IP to 100 requests per windowMs
+});
 
+// Apply the rate limiting middleware to all routes
+app.use(limiter);
 app.use(errorController);
 module.exports = app;
