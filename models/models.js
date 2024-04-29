@@ -26,8 +26,29 @@ const sequelize = new Sequelize(databaseName, username, password, {
 //Define model
 const { Users, Posts, Comments, Likes, Followers, User_saved_posts } =
   initModel(sequelize);
-//Define relationship
+sequelize.addHook('beforeCount', function (options) {
+  if (this._scope.include && this._scope.include.length > 0) {
+    options.distinct = true;
+    options.col =
+      this._scope.col || options.col || `"${this.options.name.singular}".id`;
+  }
 
+  if (options.include && options.include.length > 0) {
+    options.include = null;
+  }
+});
+//Define relationship
+sequelize.addHook('beforeCount', function (options) {
+  if (this._scope.include && this._scope.include.length > 0) {
+    options.distinct = true;
+    options.col =
+      this._scope.col || options.col || `"${this.options.name.singular}".id`;
+  }
+
+  if (options.include && options.include.length > 0) {
+    options.include = null;
+  }
+});
 Users.addHook('beforeCreate', async (user) => {
   if (user.password) {
     user.password = await bcrypt.hash(user.password, 12);

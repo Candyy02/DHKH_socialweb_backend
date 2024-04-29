@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-const { Op } = require('sequelize');
+const { Op, Sequelize } = require('sequelize');
 const catchAsync = require('../utils/catchAsync');
 const { Posts } = require('../models/models');
 const AppError = require('../utils/appError');
@@ -129,16 +129,50 @@ exports.updatePost = catchAsync(async (req, res, next) => {
   }
   res.status(200).json({ status: 'success', data: post });
 });
+
+const isValidDate = (date, format = 'DD/MM/YYYY') => {
+  return moment(date, format, true).isValid();
+};
+const extractTagValue = (input) => {
+  const regex = /@(\w+):(\w+)/g;
+  const regex2 = /@(\w+):"([^"]*)"/g;
+  let match;
+  const searchValue = {};
+  const allowedOptions = ['tag', 'user', 'comments', 'likes', 'profile'];
+  while (
+    (match = regex.exec(input)) !== null ||
+    (match = regex2.exec(input)) !== null
+  ) {
+    const tag = match[0];
+    const tagName = match[1];
+    const tagValue = match[2];
+    if (allowedOptions.includes(tagName)) {
+      searchValue[tagName] = tagValue;
+    }
+    if (tagName === 'date' && isValidDate(tagValue)) {
+      searchValue[tagName] = tagValue;
+    }
+    console.log(`Tag: ${tag}, Name: ${tagName}, Value: ${tagValue}`);
+  }
+
+  const generalSearch = input
+    .replace(regex, '')
+    .replace(regex2, '')
+    .trim()
+    .replace(/\s+/g, ' ');
+  searchValue['general'] = generalSearch;
+  console.log(searchValue);
+  console.log(`General search: ${generalSearch}`);
+
+  return searchValue;
+};
 exports.searchPost = catchAsync(async (req, res, next) => {
   const {
     general = null,
     tag = null,
     user = null,
     date = null,
-    comments = null,
-    likes = null,
-    profile = null,
-  } = req.body;
+  } = extractTagValue(req.query.q);
 
   const searchCriteria = {};
 
@@ -159,16 +193,28 @@ exports.searchPost = catchAsync(async (req, res, next) => {
   const userCriteria = {};
   if (user !== null) {
     userCriteria[Op.or] = [
-      {
-        first_name: {
+      Sequelize.where(
+        Sequelize.fn(
+          'concat',
+          Sequelize.col('first_name'),
+          ' ',
+          Sequelize.col('last_name'),
+        ),
+        {
           [Op.like]: `%${user}%`,
         },
-      },
-      {
-        last_name: {
+      ),
+      Sequelize.where(
+        Sequelize.fn(
+          'concat',
+          Sequelize.col('last_name'),
+          ' ',
+          Sequelize.col('first_name'),
+        ),
+        {
           [Op.like]: `%${user}%`,
         },
-      },
+      ),
     ];
   }
 
@@ -181,6 +227,7 @@ exports.searchPost = catchAsync(async (req, res, next) => {
   const limit = req.query.limit * 1 || 10;
   const page = req.query.page * 1 || 1;
   const offset = (page - 1) * limit;
+  const isSorted = req.query.sorted === 'true';
   const searchResult = await Posts.findAll({
     offset: offset,
     limit: limit,
@@ -195,99 +242,42 @@ exports.searchPost = catchAsync(async (req, res, next) => {
         where: userCriteria,
       },
     ],
-    order: [['created_at', 'DESC']],
-    attributes: { exclude: ['content', 'code'] },
+    order: isSorted ? [['created_at', 'DESC']] : null,
   });
-
-  // const limit = req.query.limit * 1 || 10;
-  // const page = req.query.page * 1 || 1;
-  // const offset = (page - 1) * limit;
-  // const unixDate = moment(date, 'DD/MM/YYYY').unix();
-
-  // const searchResult = await Posts.findAll({
-  //   offset: offset,
-  //   limit: limit,
-  //   where: {
-  //     [Op.or]: [
-  //       {
-  //         title: {
-  //           [Op.like]: `%${general}%`,
-  //         },
-  //       },
-  //       {
-  //         content: {
-  //           [Op.like]: `%${general}%`,
-  //         },
-  //       },
-  //     ],
-  //     [Op.and]: [
-  //       {
-  //         tags: {
-  //           [Op.like]: `%${tag}%`,
-  //         },
-  //       },
-
-  //       {
-  //         created_at: {
-  //           [Op.gte]: unixDate,
-  //         },
-  //       },
-  //     ],
-  //   },
-  //   include: [
-  //     { model: Comments, as: 'Comments' },
-  //     { model: Likes, as: 'Likes' },
-  //     {
-  //       model: Users,
-  //       as: 'user',
-  //       attributes: ['user_id', 'first_name', 'last_name', 'profile_picture'],
-  //       where: {
-  //         [Op.or]: [
-  //           {
-  //             first_name: {
-  //               [Op.like]: `%${user}%`,
-  //             },
-  //           },
-  //           {
-  //             last_name: {
-  //               [Op.like]: `%${user}%`,
-  //             },
-  //           },
-  //         ],
-  //       },
-  //     },
-  //   ],
-  //   order: [['created_at', 'DESC']],
-  // });
-  //console.log(newsfeed);
+  // Query to get the total count
+  const totalCount = await Posts.count({
+    where: searchCriteria,
+    include: [
+      {
+        model: Users,
+        as: 'user',
+        where: userCriteria,
+      },
+    ],
+  });
   if (!searchResult)
     return next(new AppError('Error while getting newsfeed', 404));
 
-  const postsWithCounts = searchResult
-    .map((post) => {
-      const commentCount = post.Comments.length;
-      const likeCount = post.Likes.length;
+  const postsWithCounts = searchResult.map((post) => {
+    const commentCount = post.Comments.length;
+    const likeCount = post.Likes.length;
 
-      return {
-        ...post.toJSON(),
-        commentCount,
-        likeCount,
-        Comments: undefined,
-        Likes: undefined,
-        User: undefined,
-      };
-    })
-    .filter((post) => {
-      if (comments !== null) {
-        return post.commentCount >= comments;
-      } else if (likes !== null) {
-        return post.likeCount >= likes;
-      } else {
-        return post.commentCount >= comments && post.likeCount >= likes;
-      }
-    });
-
-  res.status(200).json({ status: 'success', data: postsWithCounts });
+    return {
+      ...post.toJSON(),
+      commentCount,
+      likeCount,
+      Comments: undefined,
+      Likes: undefined,
+      User: undefined,
+    };
+  });
+  const totalPage = Math.ceil(totalCount / limit);
+  res.status(200).json({
+    status: 'success',
+    data: postsWithCounts,
+    page,
+    totalPages: totalPage,
+  });
 });
 exports.getUserPosts = catchAsync(async (req, res, next) => {
   const { userId } = req.params;
