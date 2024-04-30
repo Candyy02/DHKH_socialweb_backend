@@ -173,7 +173,11 @@ exports.searchPost = catchAsync(async (req, res, next) => {
     user = null,
     date = null,
   } = extractTagValue(req.query.q);
-
+  if (general === '')
+    res.status(200).json({
+      status: 'success',
+      data: [],
+    });
   const searchCriteria = {};
 
   if (general !== null) {
@@ -227,7 +231,7 @@ exports.searchPost = catchAsync(async (req, res, next) => {
   const limit = req.query.limit * 1 || 10;
   const page = req.query.page * 1 || 1;
   const offset = (page - 1) * limit;
-  const isSorted = req.query.sorted === 'true';
+  const isSorted = req.query.sorted === 'newest';
   const searchResult = await Posts.findAll({
     offset: offset,
     limit: limit,
