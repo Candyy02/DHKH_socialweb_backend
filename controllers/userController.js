@@ -7,6 +7,8 @@ const { Users, Followers } = require('../models/models');
 const AppError = require('../utils/appError');
 const path = require('path');
 const fs = require('fs');
+const { Op, Sequelize } = require('sequelize');
+const { sequelize } = require('../models/models');
 exports.getAllUser = catchAsync(async (req, res, next) => {
   const allUser = Users.findAll({});
   res.status(200).json({ allUser });
@@ -69,7 +71,7 @@ exports.getProfile = catchAsync(async (req, res, next) => {
 
 exports.updateProfile = catchAsync(async (req, res, next) => {
   const { user_id } = req.user;
-  const { first_name, last_name, email, nick_name, bio } = req.body;
+  const { first_name, last_name, email, nick_name, bio, location } = req.body;
 
   const ext = req.file?.mimetype.split('/')[1];
   const fileName = `${user_id}_${Date.now()}.${ext}`;
@@ -116,6 +118,7 @@ exports.updateProfile = catchAsync(async (req, res, next) => {
       bio,
       nick_name,
       profile_picture: imageUrl || undefined,
+      location,
     },
     {
       where: { user_id },
@@ -153,17 +156,58 @@ exports.getInfoList = catchAsync(async (req, res, next) => {
   });
   res.status(200).json({ message: 'success', data: infoList });
 });
+
 exports.searchUser = catchAsync(async (req, res, next) => {
-  const { name } = req.query;
-  const users = await Users.findAll({
+  const name = req.query.name;
+  const limit = req.query.limit * 1 || 10;
+  const page = req.query.page * 1 || 1;
+
+  const offset = (page - 1) * limit;
+
+  const [results, metadata] = await sequelize.query(
+    `
+  SELECT 
+    Users.user_id, 
+    Users.first_name, 
+    Users.last_name, 
+    Users.profile_picture, 
+    Users.location, 
+    COUNT(Followers.following_id) AS follower_count
+  FROM 
+    Users 
+  LEFT JOIN 
+    Followers ON Users.user_id = Followers.follower_id
+  WHERE 
+    Users.first_name LIKE :name OR 
+    Users.last_name LIKE :name OR 
+    Users.nick_name LIKE :name
+  GROUP BY 
+    Users.user_id
+  LIMIT :limit OFFSET :offset
+`,
+    {
+      replacements: {
+        name: `%${name}%`,
+        limit: limit,
+        offset: offset,
+      },
+    },
+  );
+  if (results.length === 0) {
+    return res.status(404).json({ message: 'No users found' });
+  }
+  const totalResult = await Users.count({
     where: {
       [Op.or]: [
-        { first_name: { [Op.iLike]: `%${name}%` } },
-        { last_name: { [Op.iLike]: `%${name}%` } },
-        { nick_name: { [Op.iLike]: `%${name}%` } },
+        { first_name: { [Op.like]: `%${name}%` } },
+        { last_name: { [Op.like]: `%${name}%` } },
+        { nick_name: { [Op.like]: `%${name}%` } },
       ],
     },
-    attributes: ['user_id', 'first_name', 'last_name', 'profile_picture'],
   });
-  res.status(200).json({ message: 'success', data: users });
+  const totalPages = Math.ceil(totalResult / limit);
+
+  res
+    .status(200)
+    .json({ message: 'success', data: results, totalPages: totalPages });
 });

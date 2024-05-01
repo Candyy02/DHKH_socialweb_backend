@@ -173,11 +173,13 @@ exports.searchPost = catchAsync(async (req, res, next) => {
     user = null,
     date = null,
   } = extractTagValue(req.query.q);
-  if (general === '')
+  if (general === '') {
     res.status(200).json({
       status: 'success',
       data: [],
     });
+  }
+
   const searchCriteria = {};
 
   if (general !== null) {

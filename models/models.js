@@ -87,4 +87,5 @@ module.exports = {
   Likes,
   Followers,
   User_saved_posts,
+  sequelize,
 };

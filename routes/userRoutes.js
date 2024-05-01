@@ -54,5 +54,6 @@ router.post(
 router.post('/follow', authController.protect, usersController.followUser);
 router.post('/unfollow', authController.protect, usersController.unfollowUser);
 router.get('/getInfoList', authController.protect, usersController.getInfoList);
-router.get("/search", authController.protect, usersController.searchUser);
+router.get('/search', authController.protect, usersController.searchUser);
+
 module.exports = router;
