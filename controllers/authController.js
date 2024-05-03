@@ -175,12 +175,12 @@ exports.googleSignIn = catchAsync(async (req, res, next) => {
       });
       res.status(200).json({ status: 'success' });
     } else {
-      res
+      return res
         .status(401)
         .json({ status: 'failed', message: 'This email is already in use!' });
     }
   } catch (error) {
-    console.error('Google Sign-In failed:', error.message);
+    console.error('Google Sign-In failed:',error);
     res.status(401).json({ error: 'Google Sign-In failed' });
   }
 });

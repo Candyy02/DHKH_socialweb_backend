@@ -3,7 +3,6 @@ const moment = require('moment');
 const multer = require('multer');
 const usersController = require('../controllers/userController');
 const authController = require('../controllers/authController');
-
 const router = express.Router();
 
 router.post('/signin', authController.signup);
@@ -33,16 +32,7 @@ router.get(
   authController.protect,
   usersController.getProfile,
 );
-// Define storage for the uploaded avatar images
-// const storage = multer.diskStorage({
-//   destination: function (req, file, cb) {
-//     cb(null, 'profile_pictures/');
-//   },
-//   filename: function (req, file, cb) {
-//     const ext = file.mimetype.split('/')[1];
-//     cb(null, `${req.user.user_id}_${moment().unix()}.${ext}`);
-//   },
-// });
+
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 router.post(
@@ -54,6 +44,10 @@ router.post(
 router.post('/follow', authController.protect, usersController.followUser);
 router.post('/unfollow', authController.protect, usersController.unfollowUser);
 router.get('/getInfoList', authController.protect, usersController.getInfoList);
-router.get('/search', authController.protect, usersController.searchUser);
+router.get(
+  '/search',
+  authController.protect,
+  usersController.searchUser,
+);
 
 module.exports = router;

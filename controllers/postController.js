@@ -7,11 +7,12 @@ const moment = require('moment');
 const { Comments, Likes, Users } = require('../models/models');
 
 exports.getPosts = catchAsync(async (req, res, next) => {
+  const email = req.user.email;
   const limit = req.query.limit * 1 || 10;
   const page = req.query.page * 1 || 1;
   const userId = req.query.userId || null;
   const offset = (page - 1) * limit;
-
+  const sorted = req.query.sorted;
   const newsfeed = await Posts.findAll({
     offset: offset,
     limit: limit,
@@ -21,7 +22,17 @@ exports.getPosts = catchAsync(async (req, res, next) => {
       {
         model: Users,
         as: 'user',
-        attributes: ['user_id', 'first_name', 'last_name', 'profile_picture'],
+        attributes: [
+          'user_id',
+          'email',
+          'first_name',
+          'last_name',
+          'profile_picture',
+        ],
+        where:
+          sorted === 'community'
+            ? { email: { [Op.like]: `${email.substring(0, 2)}%` } }
+            : null,
       },
     ],
     order: [['created_at', 'DESC']],
@@ -134,7 +145,7 @@ const isValidDate = (date, format = 'DD/MM/YYYY') => {
   return moment(date, format, true).isValid();
 };
 const extractTagValue = (input) => {
-  const regex = /@(\w+):(\w+)/g;
+  const regex = /@(\w+):([^"]+)/g;
   const regex2 = /@(\w+):"([^"]*)"/g;
   let match;
   const searchValue = {};
@@ -173,10 +184,10 @@ exports.searchPost = catchAsync(async (req, res, next) => {
     user = null,
     date = null,
   } = extractTagValue(req.query.q);
-  if (general === '') {
-    res.status(200).json({
-      status: 'success',
-      data: [],
+  if (general === null && tag === null && user === null && date === null) {
+    return res.status(400).json({
+      status: 'fail',
+      message: 'Please provide search criteria!',
     });
   }
 
