@@ -24,4 +24,12 @@ router.delete(
 );
 router.post('/likePost', authController.protect, postController.likePost);
 router.delete('/unlikePost', authController.protect, postController.unlikePost);
+router.delete('/deletePost', authController.protect, postController.deletePost);
+router.post('/savePost', authController.protect, postController.savePost);
+router.delete('/unsavePost', authController.protect, postController.unsavePost);
+router.get(
+  '/getSavedPosts',
+  authController.protect,
+  postController.getSavedPosts,
+);
 module.exports = router;

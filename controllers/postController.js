@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 const { Op, Sequelize } = require('sequelize');
 const catchAsync = require('../utils/catchAsync');
-const { Posts } = require('../models/models');
+const { Posts, User_saved_posts } = require('../models/models');
 const AppError = require('../utils/appError');
 const moment = require('moment');
 const { Comments, Likes, Users } = require('../models/models');
@@ -35,6 +35,7 @@ exports.getPosts = catchAsync(async (req, res, next) => {
             : null,
       },
     ],
+    attributes: ['title', 'tags', 'created_at', 'post_id'],
     order: [['created_at', 'DESC']],
   });
   //console.log(newsfeed);
@@ -116,6 +117,10 @@ exports.getPostDetail = catchAsync(async (req, res, next) => {
         as: 'user',
         attributes: ['user_id', 'first_name', 'last_name', 'profile_picture'],
       },
+      {
+        model: User_saved_posts,
+        as: 'User_saved_posts',
+      },
     ],
   });
   if (!post) {
@@ -125,6 +130,10 @@ exports.getPostDetail = catchAsync(async (req, res, next) => {
   const isLiked = !!postSanitized.Likes.find(
     (like) => like.user_id === req.user.user_id,
   );
+  const isSaved = !!postSanitized.User_saved_posts.find(
+    (user) => user.user_id === req.user.user_id,
+  );
+  postSanitized.isSaved = isSaved;
   postSanitized.isLiked = isLiked;
   res.status(200).json({ status: 'success', data: postSanitized });
 });
@@ -340,7 +349,6 @@ exports.deleteComment = catchAsync(async (req, res, next) => {
   }
   res.status(204).json({ status: 'success', data: comment });
 });
-//#TODO: add edit Comment in front-end
 exports.editComment = catchAsync(async (req, res, next) => {
   const { user_id } = req.user;
   const { comment_id, content, updated_at } = req.body;
@@ -365,5 +373,111 @@ exports.unlikePost = catchAsync(async (req, res, next) => {
   const { user_id } = req.user;
   const { post_id } = req.body;
   const like = await Likes.destroy({ where: { user_id, post_id } });
+  if (!like) return next(new AppError('Error while delete like!', 400));
   res.status(204).json({ status: 'success', data: like });
+});
+exports.deletePost = catchAsync(async (req, res, next) => {
+  const { user_id } = req.user;
+  const { post_id } = req.body;
+  Likes.destroy({
+    where: { post_id: post_id },
+  })
+    .then(() =>
+      Comments.destroy({
+        where: { post_id: post_id },
+      }),
+    )
+    .then(() =>
+      User_saved_posts.destroy({
+        where: { post_id: post_id },
+      }),
+    )
+    .then(() =>
+      Posts.destroy({
+        where: { user_id: user_id, post_id: post_id },
+      }),
+    )
+    .catch((err) => {
+      console.log(err);
+      return next(new AppError('Error while deleting post!', 400));
+    });
+
+  // const post = await Posts.destroy({
+  //   where: { user_id, post_id },
+  // // });
+  // if (!post) return next(new AppError('Error while deleting post!', 400));
+  res.status(204).json({ status: 'success', data: null });
+});
+exports.savePost = catchAsync(async (req, res, next) => {
+  const { user_id } = req.user;
+  const { post_id } = req.body;
+  const save = await User_saved_posts.create({ user_id, post_id });
+  if (!save) return next(new AppError('Error while saving post!', 400));
+  res.status(201).json({ status: 'success', data: save });
+});
+exports.unsavePost = catchAsync(async (req, res, next) => {
+  const { user_id } = req.user;
+  const { post_id } = req.body;
+  const save = await User_saved_posts.destroy({ where: { user_id, post_id } });
+  if (!save) return next(new AppError('Error while unsaving post!', 400));
+  res.status(204).json({ status: 'success', data: save });
+});
+exports.getSavedPosts = catchAsync(async (req, res, next) => {
+  const { user_id } = req.user;
+  const limit = req.query.limit * 1 || 10;
+  const page = req.query.page * 1 || 1;
+  const offset = (page - 1) * limit;
+  const savedPosts = await User_saved_posts.findAll({
+    offset: offset,
+    limit: limit,
+    where: { user_id },
+    include: [
+      {
+        model: Posts,
+        as: 'post',
+        include: [
+          {
+            model: Comments,
+            as: 'Comments',
+            attributes: [],
+          },
+          {
+            model: Likes,
+            as: 'Likes',
+            attributes: [],
+          },
+          {
+            model: Users,
+            as: 'user',
+            attributes: [
+              'user_id',
+              'first_name',
+              'last_name',
+              'profile_picture',
+            ],
+          },
+        ],
+        attributes: [
+          'post_id',
+          'title',
+          'tags',
+          'created_at',
+          [
+            Sequelize.fn('COUNT', Sequelize.col('post->Comments.comment_id')),
+            'commentCount',
+          ],
+          [
+            Sequelize.fn('COUNT', Sequelize.col('post->Likes.post_id')),
+            'likeCount',
+          ],
+        ],
+      },
+    ],
+    group: ['User_saved_posts.post_id'],
+  });
+  if (!savedPosts)
+    return next(new AppError('Error while getting saved posts!', 400));
+  if (savedPosts[0].dataValues.post_id == null)
+    return res.status(200).json({ status: 'success', data: [] });
+  res.status(200).json({ status: 'success', data: savedPosts });
 });

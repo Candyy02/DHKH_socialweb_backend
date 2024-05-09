@@ -151,6 +151,7 @@ exports.googleSignIn = catchAsync(async (req, res, next) => {
         first_name: given_name,
         last_name: family_name,
         profile_picture: picture,
+        created_at: Date.now(),
       };
       await Users.create(newUser, {
         validate: true,
@@ -180,7 +181,7 @@ exports.googleSignIn = catchAsync(async (req, res, next) => {
         .json({ status: 'failed', message: 'This email is already in use!' });
     }
   } catch (error) {
-    console.error('Google Sign-In failed:',error);
+    console.error('Google Sign-In failed:', error);
     res.status(401).json({ error: 'Google Sign-In failed' });
   }
 });

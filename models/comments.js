@@ -23,6 +23,7 @@ module.exports = function (sequelize, DataTypes) {
           model: 'Posts',
           key: 'post_id',
         },
+        onDelete: 'CASCADE',
       },
       content: {
         type: DataTypes.TEXT,

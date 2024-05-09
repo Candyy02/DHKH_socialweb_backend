@@ -7,6 +7,7 @@ module.exports = function (sequelize, DataTypes) {
         type: DataTypes.INTEGER,
         allowNull: false,
         primaryKey: true,
+        onDelete: 'CASCADE',
       },
       user_id: {
         type: DataTypes.STRING(255),
