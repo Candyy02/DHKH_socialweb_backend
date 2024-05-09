@@ -1,10 +1,10 @@
 var DataTypes = require('sequelize').DataTypes;
-var _Comments = require('./Comments');
-var _Followers = require('./Followers');
-var _Likes = require('./Likes');
-var _Posts = require('./Posts');
-var _User_saved_posts = require('./User_saved_posts');
-var _Users = require('./Users');
+var _Comments = require('./comments');
+var _Followers = require('./followers');
+var _Likes = require('./likes');
+var _Posts = require('./posts');
+var _User_saved_posts = require('./user_saved_posts');
+var _Users = require('./users');
 
 function initModels(sequelize) {
   var Comments = _Comments(sequelize, DataTypes);
