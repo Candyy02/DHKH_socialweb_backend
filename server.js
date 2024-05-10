@@ -30,7 +30,7 @@ const io = socketIo(server);
 //#TODO: Tính tới trường hợp nếu người dùng gửi receiver_id không có trong db
 io.on('connection', messageHandler);
 
-const port = 3000;
+const PORT = process.env.SERVER_PORT || 3000;
 server.listen(port, () => console.log(`Server running on port ${port}`));
 process.on('unhandledRejection', (err) => {
   console.log('UNHANDLED REJECTION! 💥 Shutting down...');
