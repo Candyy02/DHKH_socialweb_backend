@@ -9,6 +9,8 @@ router.get(
   authController.protect,
   postController.getPostDetail,
 );
+router.patch("/editPost", authController.protect, postController.editPost)
+router.delete('/deletePost', authController.protect, postController.deletePost)
 router.post('/createPost', authController.protect, postController.createPost);
 router.get('/search', authController.protect, postController.searchPost);
 router.post('/addComment', authController.protect, postController.addComment);
@@ -24,4 +26,10 @@ router.delete(
 );
 router.post('/likePost', authController.protect, postController.likePost);
 router.delete('/unlikePost', authController.protect, postController.unlikePost);
+
+router.post('/savepost', authController.protect, postController.savepost);
+router.delete('/unSavePost', authController.protect, postController.unSavePost);
+router.get("/savedpost", authController.protect, postController.getSavedPost);
+
+
 module.exports = router;
