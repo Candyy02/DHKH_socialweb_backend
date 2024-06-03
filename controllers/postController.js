@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 const { Op, Sequelize } = require('sequelize');
 const catchAsync = require('../utils/catchAsync');
-const { Posts, User_saved_posts } = require('../models/models');
+const { Posts, User_saved_posts, Followers } = require('../models/models');
 const AppError = require('../utils/appError');
 const moment = require('moment');
 const { Comments, Likes, Users } = require('../models/models');
@@ -11,8 +11,30 @@ exports.getPosts = catchAsync(async (req, res, next) => {
   const limit = req.query.limit * 1 || 10;
   const page = req.query.page * 1 || 1;
   const userId = req.query.userId || null;
+  const userIdToken = req.user.user_id;
   const offset = (page - 1) * limit;
   const sorted = req.query.sorted;
+  let whereConditions = {};
+  if (sorted === 'community') {
+    // Get following users' IDs
+    const following = await Followers.findAll({
+      where: { follower_id: userIdToken },
+      attributes: ['following_id'],
+    });
+    const followingIds = following.map((f) => f.following_id);
+    console.log(followingIds);
+
+    // Create OR conditions for community sorting
+    whereConditions = {
+      [Op.or]: [
+        { user_id: { [Op.in]: followingIds } },
+        { email: { [Op.like]: `${email.substring(0, 2)}%` } },
+      ],
+    };
+  } else if (userId) {
+    whereConditions.user_id = userId;
+  }
+
   const newsfeed = await Posts.findAll({
     offset: offset,
     limit: limit,
@@ -29,10 +51,7 @@ exports.getPosts = catchAsync(async (req, res, next) => {
           'last_name',
           'profile_picture',
         ],
-        where:
-          sorted === 'community'
-            ? { email: { [Op.like]: `${email.substring(0, 2)}%` } }
-            : null,
+        where: whereConditions,
       },
     ],
     attributes: ['title', 'tags', 'created_at', 'post_id'],
@@ -139,9 +158,9 @@ exports.getPostDetail = catchAsync(async (req, res, next) => {
 });
 exports.updatePost = catchAsync(async (req, res, next) => {
   const { postId } = req.params;
-  const { title, content, code, update_at } = req.body;
+  const { content, code, tags, updated_at } = req.body;
   const post = await Posts.update(
-    { title, content, code, update_at },
+    { content, code, tags, updated_at },
     { where: { post_id: postId } },
   );
   if (!post) {

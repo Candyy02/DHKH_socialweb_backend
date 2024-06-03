@@ -10,6 +10,7 @@ router.get(
   postController.getPostDetail,
 );
 router.post('/createPost', authController.protect, postController.createPost);
+router.put("/updatePost/:postId",authController.protect,postController.updatePost)
 router.get('/search', authController.protect, postController.searchPost);
 router.post('/addComment', authController.protect, postController.addComment);
 router.patch(
