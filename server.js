@@ -32,10 +32,3 @@ io.on('connection', messageHandler);
 
 const PORT = process.env.SERVER_PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-process.on('unhandledRejection', (err) => {
-  console.log('UNHANDLED REJECTION! 💥 Shutting down...');
-  console.log(err.name, err.message);
-  server.close(() => {
-    process.exit(1);
-  });
-});

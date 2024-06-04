@@ -62,6 +62,7 @@ module.exports = function (sequelize, DataTypes) {
       nick_name: {
         type: DataTypes.STRING(255),
         allowNull: true,
+        defaultValue: '',
       },
       location: {
         type: DataTypes.STRING(255),
