@@ -9,7 +9,7 @@ const username = process.env.USERNAME;
 const password = process.env.PASSWORD;
 const PORT = process.env.DATABASE_PORT || 3306;
 const sequelize = new Sequelize(databaseName, username, password, {
-  host: 'social-web.ctlskvoaafuc.ap-southeast-1.rds.amazonaws.com',
+  host: '127.0.0.1',
   dialect:
     'mysql' /* one of 'mysql' | 'postgres' | 'sqlite' | 'mariadb' | 'mssql' | 'db2' | 'snowflake' | 'oracle' */,
   port: PORT,

@@ -12,7 +12,7 @@ const app = require('./app');
 
 async function testConnection() {
   try {
-    await sequelize.authenticate();
+    await sequelize.sync({ force: true });
     console.log('Database connection has been established successfully.');
   } catch (error) {
     console.error('Unable to connect to the database:', error);
